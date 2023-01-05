@@ -11,14 +11,16 @@ import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.StrictMode;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultCallback;
@@ -31,25 +33,38 @@ import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.material.button.MaterialButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.DateFormat;
+import java.util.Date;
+import java.util.Objects;
 
 
 public class CreateRecipeFragment extends Fragment {
 
+    private RecipeController mController;
     private DatabaseReference mRecipeRef;
+    private FirebaseStorage mStorage;
+    private StorageReference mStorageRef;
+    private Uri mImageUri;
 
     private ImageView mRecipeImage;
     private EditText mEtTitle;
+    private String mFilename;
+    private ProgressBar mProgressBar;
+    private LinearLayout mImageLayout;
 
     public CreateRecipeFragment() {
         super(R.layout.fragment_create_recipe);
@@ -65,14 +80,13 @@ public class CreateRecipeFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_create_recipe, container, false);
 
-        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
-        StrictMode.setVmPolicy(builder.build());
-
+        mProgressBar = view.findViewById(R.id.progress_bar);
+        mImageLayout = view.findViewById(R.id.linear_layout);
         mRecipeImage = view.findViewById(R.id.iv_recipe);
 
         mEtTitle = view.findViewById(R.id.et_recipe_title);
         Button btnSubmit = view.findViewById(R.id.btn_submit);
-        MaterialButton btnPic = view.findViewById(R.id.btn_pic);
+        ImageView btnPic = view.findViewById(R.id.btn_pic);
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
@@ -80,12 +94,15 @@ public class CreateRecipeFragment extends Fragment {
         mRecipeRef = FirebaseDatabase.getInstance("https://recipeapp-7d055-default-rtdb.europe-west1.firebasedatabase.app/")
                 .getReference().child("Recipe").child(user.getUid()); // get reference to the database for the user
 
+        mStorage = FirebaseStorage.getInstance("gs://recipeapp-7d055.appspot.com/");
+        mStorageRef = mStorage.getReference().child("Images").child(user.getUid()); // get reference to the storage for the user
+
         btnPic.setOnClickListener(v -> {
             if (ContextCompat.checkSelfPermission(
-                    requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
-                    && ContextCompat.checkSelfPermission(
+                    requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED &&
+                    ContextCompat.checkSelfPermission(
                             requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                // You can use the API that requires the permission.
+                // if the user has already granted the permissions, then open the camera
                 OpenCamera();
             } else {
                 // ask for permission
@@ -97,37 +114,132 @@ public class CreateRecipeFragment extends Fragment {
         btnSubmit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                btnSubmit.setEnabled(false);
                 String title = mEtTitle.getText().toString();
-                Recipe recipe = new Recipe(title); // create a new recipe object
-                mRecipeRef.push().setValue(recipe).addOnSuccessListener(new OnSuccessListener<Void>() { // push the recipe to the database
+                boolean hasPicture = mRecipeImage != null;
+                Recipe recipe = new Recipe(title, mFilename); // create a new recipe object
+                // create a new RecipeController instance
+                mController = new RecipeController(recipe);
+                mRecipeRef.push().setValue(mController.getRecipe()).addOnSuccessListener(new OnSuccessListener<Void>() { // push the recipe to the database
                     @Override
                     public void onSuccess(Void unused) {
-                        Toast.makeText(getContext(), "Recipe created", Toast.LENGTH_SHORT).show();
-                        Intent intent = new Intent(getActivity(), RecipeActivity.class);
-                        startActivity(intent); // start the recipe activity
+
+                        if (mImageUri != null) {
+                            // if the image is not null, then upload the image to the storage and gallery
+                            saveImageToGallery(mImageUri); // save the image to the gallery
+                            Bitmap bitmap = null;
+                            try {
+                                bitmap = MediaStore.Images.Media.getBitmap(requireContext().getContentResolver(), mImageUri);
+                                uploadImageToStorage(bitmap);
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+//                            uploadImageToStorage();
+                        } else {
+                            Toast.makeText(getContext(), "Recipe created", Toast.LENGTH_SHORT).show();
+                            Intent intent = new Intent(getActivity(), RecipeActivity.class);
+                            startActivity(intent); // start the recipe activity
+                        }
 
                     }
-                });
+                }).addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to create recipe", Toast.LENGTH_SHORT).show());
             }
         });
 
 
+//        btnSubmit.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                String title = mEtTitle.getText().toString();
+//                Recipe recipe = new Recipe(title, mFilename); // create a new recipe object
+//                mRecipeRef.push().setValue(recipe).addOnSuccessListener(new OnSuccessListener<Void>() { // push the recipe to the database
+//                    @Override
+//                    public void onSuccess(Void unused) {
+//                        saveImageToGallery(mImageUri); // save the image to the gallery
+//                        Toast.makeText(getContext(), "Recipe created", Toast.LENGTH_SHORT).show();
+//                        Intent intent = new Intent(getActivity(), RecipeActivity.class);
+//                        startActivity(intent); // start the recipe activity
+//                    }
+//                }).addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to create recipe", Toast.LENGTH_SHORT).show());
+//            }
+//        });
+
         return view;
     }
+
+    private void uploadImageToStorage(Bitmap bitmap) {
+        mProgressBar.setVisibility(View.VISIBLE);
+
+        Matrix matrix = new Matrix();
+        matrix.postRotate(90); // rotate the image by 90 degrees
+
+        // create a new bitmap from the original using the matrix to get the rotated bitmap
+        Bitmap rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos); // compress the image to a JPEG with 70% quality
+        byte[] data = baos.toByteArray();
+
+
+        UploadTask uploadTask = mStorageRef.child(mFilename).putBytes(data); // upload the image to the storage
+        uploadTask.addOnFailureListener(exception -> {
+            Toast.makeText(getContext(), "Upload Failed!", Toast.LENGTH_SHORT).show();
+            Log.d("ImageUpload", "uploadImageToStorage: " + exception.getMessage());
+        });
+
+        uploadTask.addOnProgressListener(taskSnapshot -> { // show the progress of the upload
+            double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+            mProgressBar.setProgress((int) progress);
+        });
+
+        uploadTask.addOnCompleteListener(task -> { // when the upload is complete, show a toast and start the recipe activity
+            if (task.isSuccessful()) {
+                // Upload was successful, move to the next activity
+                Toast.makeText(getContext(), "Recipe created and image uploaded", Toast.LENGTH_SHORT).show();
+                Intent intent = new Intent(getActivity(), RecipeActivity.class);
+                startActivity(intent);
+            } else {
+                // Upload failed, show an error message
+                Toast.makeText(getContext(), "Upload Failed!", Toast.LENGTH_SHORT).show();
+                Log.d("ImageUpload", "uploadImageToStorage: " + Objects.requireNonNull(task.getException()).getMessage());
+            }
+        });
+    }
+
+
+//    private void uploadImageToStorage() {
+//        mRecipeImage.setDrawingCacheEnabled(true);
+//        mRecipeImage.buildDrawingCache();
+//        Bitmap bitmap = mRecipeImage.getDrawingCache();
+//        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+//        byte[] data = baos.toByteArray();
+//
+//        UploadTask uploadTask = mStorageRef.child(mFilename).putBytes(data);
+//        uploadTask.addOnFailureListener(exception -> {
+//            Toast.makeText(getContext(), "Upload Failed!", Toast.LENGTH_SHORT).show();
+//            Log.d("ImageUpload", "uploadImageToStorage: " + exception.getMessage());
+//        }).addOnSuccessListener(taskSnapshot -> {
+//            Toast.makeText(getContext(), "Image Uploaded", Toast.LENGTH_SHORT).show();
+//        });
+//    }
 
     //TODO: only save the image to the Gallery and db if the user clicks the submit button
     //TODO: add the image to the recipe object
     //TODO: change name of the image to the title of the recipe
 
     private void OpenCamera() {
-
         launchCameraResult.launch(getUri());
-
     }
 
     private Uri getUri() {
         File file = new File(requireContext().getFilesDir(), "picFromCamera");
         return FileProvider.getUriForFile(requireContext(), requireContext().getPackageName() + ".fileprovider", file);
+    }
+
+    private void createFileName() {
+        DateFormat dateFormat = DateFormat.getDateTimeInstance();
+        mFilename = mEtTitle.getText().toString() + " " + dateFormat.format(new Date());
     }
 
     ActivityResultLauncher<Uri> launchCameraResult = registerForActivityResult(
@@ -136,16 +248,13 @@ public class CreateRecipeFragment extends Fragment {
                 @Override
                 public void onActivityResult(Boolean result) {
                     if (result) {
-                        Uri imageUri = getUri();
-
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            saveImageToGallery(imageUri);
-                        }
-
-                        Bitmap scaledImage = scaleImage(imageUri);
+                        mImageUri = getUri();
+                        createFileName();
+                        Bitmap scaledImage = scaleImage(mImageUri);
 
                         // Set the image to the ImageView
                         mRecipeImage.setImageBitmap(scaledImage);
+                        mImageLayout.setVisibility(View.VISIBLE);
                     }
                 }
             });
@@ -162,7 +271,7 @@ public class CreateRecipeFragment extends Fragment {
         ContentValues contentValues = new ContentValues();
 
         // Set the values for the ContentValues object
-        contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, "recipeapp_image");
+        contentValues.put(MediaStore.Images.Media.DISPLAY_NAME, mFilename);
         contentValues.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
         contentValues.put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis() / 1000);
         contentValues.put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis());
@@ -170,7 +279,7 @@ public class CreateRecipeFragment extends Fragment {
 
         // Insert the image into the gallery
         Uri newUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
-
+//        mImageUri = newUri;
         // Copy the file to the new location
         try (InputStream inputStream = resolver.openInputStream(imageUri);
              OutputStream outputStream = resolver.openOutputStream(newUri)) {
@@ -181,7 +290,8 @@ public class CreateRecipeFragment extends Fragment {
                 outputStream.write(buffer, 0, len);
             }
         } catch (IOException e) {
-            // There was an error copying the file
+            Log.d("saveToGallery", "saveImageToGallery: Failed" + e);
+            Toast.makeText(requireContext(), "Could not save to gallery", Toast.LENGTH_SHORT).show();
         }
     }
 

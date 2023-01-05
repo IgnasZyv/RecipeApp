@@ -2,6 +2,7 @@ package com.example.recipeapp;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,7 +34,6 @@ public class RecipeFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
     }
 
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -41,6 +41,7 @@ public class RecipeFragment extends Fragment {
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser(); // get the current user
 
+        assert user != null;
         DatabaseReference recipeRef = FirebaseDatabase.getInstance("https://recipeapp-7d055-default-rtdb.europe-west1.firebasedatabase.app/")
                 .getReference().child("Recipe").child(user.getUid()); // get reference to the database for the user
         recipeRef.keepSynced(true); // keep the data synced
@@ -88,11 +89,14 @@ public class RecipeFragment extends Fragment {
     @Override public void onStart() { // start the adapter
         super.onStart();
         mRecipeAdapter.startListening(); // start listening for changes in the database
+        mRecipeAdapter.notifyDataSetChanged();
+        Log.d("RecipeAdapter", "onStart: ");
     }
 
     @Override public void onStop() { // stop the adapter
         super.onStop();
         mRecipeAdapter.stopListening(); // stop listening for changes in the database
     }
+
 
 }

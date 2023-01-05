@@ -43,7 +43,9 @@
         <activity android:name=".LoginActivity" />
         <activity android:name=".RegisterActivity" />
         <activity android:name=".RecipeActivity" />
-        <activity android:name=".CreateRecipeActivity" />
+        <activity android:name=".CreateRecipeActivity"
+            android:screenOrientation="locked"/>
+        <activity android:name=".RecipeDetailActivity"/>
 
         <provider
             android:name="androidx.core.content.FileProvider"

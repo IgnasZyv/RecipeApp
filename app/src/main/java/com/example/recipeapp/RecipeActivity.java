@@ -19,4 +19,5 @@ public class RecipeActivity extends AppCompatActivity {
                 .add(R.id.fragment_container, RecipeFragment.class, null)
                 .commit();
     }
+
 }

@@ -1,12 +1,24 @@
 package com.example.recipeapp;
 
-public class Recipe {
+import java.io.Serializable;
+
+public class Recipe implements Serializable {
     private String mTitle;
+    private String mPictureName;
 
     public Recipe() {} // Needed for Firebase
 
-    public Recipe(String title) {
+    public Recipe(String title, String pictureName) {
         this.mTitle = title;
+        this.mPictureName = pictureName;
+    }
+
+    public String getPictureName() {
+        return mPictureName;
+    }
+
+    public void setPictureName(String pictureName) {
+        mPictureName = pictureName;
     }
 
     public String getTitle() {
@@ -16,4 +28,5 @@ public class Recipe {
     public void setTitle(String title) {
         mTitle = title;
     }
+
 }
