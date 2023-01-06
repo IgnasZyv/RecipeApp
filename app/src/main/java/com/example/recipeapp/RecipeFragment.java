@@ -2,7 +2,6 @@ package com.example.recipeapp;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -90,7 +89,6 @@ public class RecipeFragment extends Fragment {
         super.onStart();
         mRecipeAdapter.startListening(); // start listening for changes in the database
         mRecipeAdapter.notifyDataSetChanged();
-        Log.d("RecipeAdapter", "onStart: ");
     }
 
     @Override public void onStop() { // stop the adapter

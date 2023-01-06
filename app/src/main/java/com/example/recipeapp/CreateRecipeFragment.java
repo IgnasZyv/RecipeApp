@@ -12,12 +12,15 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.text.InputType;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -48,6 +51,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Objects;
 
@@ -65,6 +69,10 @@ public class CreateRecipeFragment extends Fragment {
     private String mFilename;
     private ProgressBar mProgressBar;
     private LinearLayout mImageLayout;
+    private LinearLayout mIngredientLayout;
+
+    private ArrayList<EditText> mIngredientList;
+    private ArrayList<EditText> mQuantityList;
 
     public CreateRecipeFragment() {
         super(R.layout.fragment_create_recipe);
@@ -73,6 +81,8 @@ public class CreateRecipeFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mIngredientList = new ArrayList<>();
+        mQuantityList = new ArrayList<>();
     }
 
 
@@ -83,10 +93,13 @@ public class CreateRecipeFragment extends Fragment {
         mProgressBar = view.findViewById(R.id.progress_bar);
         mImageLayout = view.findViewById(R.id.linear_layout);
         mRecipeImage = view.findViewById(R.id.iv_recipe);
+        mIngredientLayout = view.findViewById(R.id.ingredient_layout);
+        ImageButton addIngredient = view.findViewById(R.id.add_ingredients);
 
         mEtTitle = view.findViewById(R.id.et_recipe_title);
         Button btnSubmit = view.findViewById(R.id.btn_submit);
         ImageView btnPic = view.findViewById(R.id.btn_pic);
+
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
@@ -111,13 +124,17 @@ public class CreateRecipeFragment extends Fragment {
             }
         });
 
+        addIngredient.setOnClickListener(v -> {
+            AddIngredientRow();
+        });
+
         btnSubmit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 btnSubmit.setEnabled(false);
                 String title = mEtTitle.getText().toString();
                 boolean hasPicture = mRecipeImage != null;
-                Recipe recipe = new Recipe(title, mFilename); // create a new recipe object
+                Recipe recipe = new Recipe(title, mFilename, getIngredients()); // create a new recipe object
                 // create a new RecipeController instance
                 mController = new RecipeController(recipe);
                 mRecipeRef.push().setValue(mController.getRecipe()).addOnSuccessListener(new OnSuccessListener<Void>() { // push the recipe to the database
@@ -140,31 +157,65 @@ public class CreateRecipeFragment extends Fragment {
                             Intent intent = new Intent(getActivity(), RecipeActivity.class);
                             startActivity(intent); // start the recipe activity
                         }
-
                     }
                 }).addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to create recipe", Toast.LENGTH_SHORT).show());
             }
         });
 
-
-//        btnSubmit.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//                String title = mEtTitle.getText().toString();
-//                Recipe recipe = new Recipe(title, mFilename); // create a new recipe object
-//                mRecipeRef.push().setValue(recipe).addOnSuccessListener(new OnSuccessListener<Void>() { // push the recipe to the database
-//                    @Override
-//                    public void onSuccess(Void unused) {
-//                        saveImageToGallery(mImageUri); // save the image to the gallery
-//                        Toast.makeText(getContext(), "Recipe created", Toast.LENGTH_SHORT).show();
-//                        Intent intent = new Intent(getActivity(), RecipeActivity.class);
-//                        startActivity(intent); // start the recipe activity
-//                    }
-//                }).addOnFailureListener(e -> Toast.makeText(getContext(), "Failed to create recipe", Toast.LENGTH_SHORT).show());
-//            }
-//        });
-
         return view;
+    }
+
+    private void AddIngredientRow() {
+        LinearLayout horizontalLayout = new LinearLayout(getContext()); // create a new horizontal layout
+        // set the layout params
+        horizontalLayout.setOrientation(LinearLayout.HORIZONTAL);
+        horizontalLayout.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        horizontalLayout.setGravity(Gravity.CENTER);
+        horizontalLayout.setWeightSum(1);
+        horizontalLayout.setPadding(0, 0, 0, 10);
+
+        float factor = getResources().getDisplayMetrics().density; // get the density factor
+        int pxWidth = (int)(198 * factor); // convert the width to pixels
+        int pxHeight = (int)(48 * factor); // convert the height to pixels
+
+        EditText etIngredient = new EditText(getContext()); // create a new edit text
+        etIngredient.setId(View.generateViewId());
+        etIngredient.setHint(R.string.ingredient);
+        etIngredient.setLayoutParams(new LinearLayout.LayoutParams(pxWidth, pxHeight));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            etIngredient.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+        }
+        etIngredient.setInputType(InputType.TYPE_CLASS_TEXT);
+        horizontalLayout.addView(etIngredient); // add the edit text to the horizontal layout
+
+        int pxWidth2 = (int)(150 * factor);
+        int pxHeight2 = (int)(48 * factor);
+
+        EditText etQuantity = new EditText(getContext()); // create a new edit text
+        etQuantity.setId(View.generateViewId());
+        etQuantity.setHint(R.string.quantity);
+        etQuantity.setLayoutParams(new LinearLayout.LayoutParams(pxWidth2, pxHeight2));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            etIngredient.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+        }
+        etIngredient.setInputType(InputType.TYPE_CLASS_TEXT);
+
+        horizontalLayout.addView(etQuantity); // add the edit text to the horizontal layout
+        mIngredientLayout.addView(horizontalLayout); // add the horizontal layout to the vertical layout
+        mIngredientList.add(etIngredient);
+        mQuantityList.add(etQuantity); // add the edit text to the list
+    }
+
+    private IngredientRow getIngredients() {
+        ArrayList<String> ingredients = new ArrayList<>();
+        ArrayList<String> quantities = new ArrayList<>();
+        for (EditText et : mIngredientList) {
+            ingredients.add(et.getText().toString());
+        }
+        for (EditText et : mQuantityList) {
+            quantities.add(et.getText().toString());
+        }
+        return new IngredientRow(ingredients, quantities);
     }
 
     private void uploadImageToStorage(Bitmap bitmap) {

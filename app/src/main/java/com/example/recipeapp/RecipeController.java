@@ -29,4 +29,16 @@ public class RecipeController implements Serializable {
     public void setTitle(String title) {
         mRecipe.setTitle(title);
     }
+
+    public IngredientRow getIngredients() {
+        return mRecipe.getIngredients();
+    }
+
+    public void setIngredients(IngredientRow ingredients) {
+        mRecipe.setIngredients(ingredients);
+    }
+
+    public String getId() {
+        return mRecipe.getId();
+    }
 }

@@ -40,12 +40,16 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
-        <activity android:name=".LoginActivity" />
-        <activity android:name=".RegisterActivity" />
-        <activity android:name=".RecipeActivity" />
+        <activity android:name=".LoginActivity"
+            android:screenOrientation="locked"/>
+        <activity android:name=".RegisterActivity"
+            android:screenOrientation="locked"/>
+        <activity android:name=".RecipeActivity"
+            android:screenOrientation="locked"/>
         <activity android:name=".CreateRecipeActivity"
             android:screenOrientation="locked"/>
-        <activity android:name=".RecipeDetailActivity"/>
+        <activity android:name=".RecipeDetailActivity"
+            android:screenOrientation="locked"/>
 
         <provider
             android:name="androidx.core.content.FileProvider"

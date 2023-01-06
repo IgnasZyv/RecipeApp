@@ -3,12 +3,14 @@ package com.example.recipeapp;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -30,6 +32,7 @@ public class RecipeDetailFragment extends Fragment {
     LinearLayout mImageLayout;
     ImageView mImageView;
     RecipeController mRecipeController;
+    LinearLayout mIngredientsLayout;
 
     public RecipeDetailFragment() {
         super(R.layout.fragment_recipe_detail);
@@ -42,6 +45,7 @@ public class RecipeDetailFragment extends Fragment {
         mRecipeController = (RecipeController) getArguments().getSerializable("controller");
     }
 
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -51,6 +55,7 @@ public class RecipeDetailFragment extends Fragment {
         ProgressBar progressBar = view.findViewById(R.id.progress_bar);
         mImageLayout = view.findViewById(R.id.ll_recipe_image);
         mImageView = view.findViewById(R.id.iv_recipe);
+        mIngredientsLayout = view.findViewById(R.id.ingredient_layout);
 
         if (mRecipeController.getPictureName() != null) {
             progressBar.setVisibility(View.VISIBLE);
@@ -80,7 +85,6 @@ public class RecipeDetailFragment extends Fragment {
                                 }
                             })
                             .into(mImageView);
-//                    progressBar.setVisibility(View.GONE);
                     mImageLayout.setVisibility(View.VISIBLE);
                 }
             });
@@ -98,9 +102,51 @@ public class RecipeDetailFragment extends Fragment {
         }
 
 
-
+        getIngredients();
 
 
         return view;
+    }
+
+    private void getIngredients() {
+        if (mRecipeController.getIngredients() != null) {
+            IngredientRow ingredientRow = mRecipeController.getIngredients();
+            for (int i = 0; i < ingredientRow.getIngredient().size(); i++) {
+                String ingredient = ingredientRow.getIngredient().get(i);
+                String quantity = ingredientRow.getQuantity().get(i);
+
+                LinearLayout horizontalLayout = new LinearLayout(getContext()); // create a new horizontal layout
+                // set the layout params
+                horizontalLayout.setOrientation(LinearLayout.HORIZONTAL);
+                horizontalLayout.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+                horizontalLayout.setGravity(Gravity.CENTER);
+                horizontalLayout.setWeightSum(1);
+                horizontalLayout.setPadding(0, 0, 0, 10);
+
+                float factor = getResources().getDisplayMetrics().density; // get the density factor
+                int pxWidth = (int)(198 * factor); // convert the width to pixels
+                int pxHeight = (int)(48 * factor); // convert the height to pixels
+
+
+                TextView tvIngredient = new TextView(getContext()); // create a new edit text
+                tvIngredient.setId(View.generateViewId());
+                tvIngredient.setLayoutParams(new LinearLayout.LayoutParams(pxWidth, pxHeight));
+                tvIngredient.setText(ingredient);
+                tvIngredient.setTextSize(18);
+                horizontalLayout.addView(tvIngredient); // add the edit text to the horizontal layout
+
+                int pxWidth2 = (int)(150 * factor);
+                int pxHeight2 = (int)(48 * factor);
+
+                TextView tvQuantity = new TextView(getContext()); // create a new edit text
+                tvQuantity.setId(View.generateViewId());
+                tvQuantity.setLayoutParams(new LinearLayout.LayoutParams(pxWidth2, pxHeight2));
+                tvQuantity.setText(quantity);
+                tvQuantity.setTextSize(18);
+                horizontalLayout.addView(tvQuantity); // add the edit text to the horizontal layout
+                mIngredientsLayout.addView(horizontalLayout); // add the horizontal layout to the vertical layout
+            }
+        }
+
     }
 }
