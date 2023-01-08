@@ -1,6 +1,8 @@
 package com.example.recipeapp;
 
 import java.io.Serializable;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.UUID;
 
 public class Recipe implements Serializable {
@@ -8,6 +10,7 @@ public class Recipe implements Serializable {
     private String mTitle;
     private String mPictureName;
     private IngredientRow mIngredients;
+    private Date mDate;
 
     public Recipe() {} // Needed for Firebase
 
@@ -16,6 +19,9 @@ public class Recipe implements Serializable {
         this.mPictureName = pictureName;
         this.mIngredients = ingredients;
         this.mId = UUID.randomUUID().toString();
+
+        Calendar calendar = Calendar.getInstance();
+        this.mDate = calendar.getTime();
     }
 
     public String getPictureName() {
@@ -48,5 +54,13 @@ public class Recipe implements Serializable {
 
     public void setId(String id) {
         mId = id;
+    }
+
+    public Date getDate() {
+        return mDate;
+    }
+
+    public void setDate(Date date) {
+        mDate = date;
     }
 }

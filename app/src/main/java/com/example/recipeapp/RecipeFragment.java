@@ -21,6 +21,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 
 public class RecipeFragment extends Fragment {
     RecyclerView mRecyclerView;
@@ -48,9 +49,11 @@ public class RecipeFragment extends Fragment {
         mRecyclerView = view.findViewById(R.id.rv_recipes);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(getContext())); // set the layout manager for the recycler view
 
+        Query query = recipeRef.orderByKey();
+
         FirebaseRecyclerOptions<Recipe> options =
                 new FirebaseRecyclerOptions.Builder<Recipe>()
-                        .setQuery(recipeRef, Recipe.class)
+                        .setQuery(query, Recipe.class)
                         .build(); // get all the recipes from the database
 
         mRecipeAdapter = new RecipeAdapter(options); // create a new adapter

@@ -2,9 +2,11 @@ package com.example.recipeapp;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -32,8 +34,6 @@ public class RecipeDetailActivity extends AppCompatActivity {
             Intent intent = getIntent(); // get the intent that started the activity
             Bundle extras = intent.getExtras(); // get the extras from the intent
 
-
-
             if (extras != null) {
                 Recipe model = (Recipe) getIntent().getSerializableExtra("recipe"); // get the recipe from the intent
 
@@ -44,29 +44,29 @@ public class RecipeDetailActivity extends AppCompatActivity {
                     addMenuProvider(new MenuProvider() {
                         @Override
                         public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
-                            menuInflater.inflate(R.menu.detail_menu, menu);
+                            menuInflater.inflate(R.menu.detail_menu, menu); // inflate the menu
                         }
 
                         @Override
                         public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                            if (menuItem.getItemId() == R.id.delete_recipe) {
-                                // delete the recipe
+                            if (menuItem.getItemId() == R.id.delete_recipe) { // if the delete recipe button is clicked
                                 DatabaseReference databaseReference = FirebaseDatabase.getInstance("https://recipeapp-7d055-default-rtdb.europe-west1.firebasedatabase.app/")
-                                        .getReference("Recipe")
-                                        .child(user.getUid());
+                                        .getReference();
 
-                                Query query = databaseReference.child("id").equalTo(recipeController.getId());
-                                query.addListenerForSingleValueEvent(new ValueEventListener() {
+                                assert user != null;
+                                // get the reference to the recipe in the database
+                                Query query = databaseReference.child("Recipe").child(user.getUid()).child(recipeController.getId());
+                                query.addListenerForSingleValueEvent(new ValueEventListener() { // add a listener for the value event
                                     @Override
                                     public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                        for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
-                                            dataSnapshot.getRef().removeValue();
-                                        }
+                                            snapshot.getRef().removeValue(); // remove the recipe from the database
+                                            changeActivity(); // change the activity
                                     }
 
                                     @Override
                                     public void onCancelled(@NonNull DatabaseError error) {
-
+                                        Toast.makeText(RecipeDetailActivity.this, "Error deleting recipe", Toast.LENGTH_SHORT).show();
+                                        Log.d("menuDelete", "onCancelled: " + error.getMessage());
                                     }
                                 });
                                 return true;
@@ -74,7 +74,6 @@ public class RecipeDetailActivity extends AppCompatActivity {
                             return false;
                         }
                     });
-
 
                     setTitle(recipeController.getTitle()); // set the title of the activity
                     Bundle bundle = new Bundle();
@@ -89,6 +88,12 @@ public class RecipeDetailActivity extends AppCompatActivity {
                 }
             }
         }
+
+    private void changeActivity() {
+            Intent intent = new Intent(this, RecipeActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK); // clear the activity stack
+            startActivity(intent);
+    }
 
 
 }

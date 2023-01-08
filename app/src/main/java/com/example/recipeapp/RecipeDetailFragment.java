@@ -7,6 +7,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
@@ -131,6 +132,7 @@ public class RecipeDetailFragment extends Fragment {
                 TextView tvIngredient = new TextView(getContext()); // create a new edit text
                 tvIngredient.setId(View.generateViewId());
                 tvIngredient.setLayoutParams(new LinearLayout.LayoutParams(pxWidth, pxHeight));
+                tvIngredient.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
                 tvIngredient.setText(ingredient);
                 tvIngredient.setTextSize(18);
                 horizontalLayout.addView(tvIngredient); // add the edit text to the horizontal layout
@@ -145,8 +147,21 @@ public class RecipeDetailFragment extends Fragment {
                 tvQuantity.setTextSize(18);
                 horizontalLayout.addView(tvQuantity); // add the edit text to the horizontal layout
                 mIngredientsLayout.addView(horizontalLayout); // add the horizontal layout to the vertical layout
+
             }
         }
-
     }
+
+    private void DeleteIngredient(LinearLayout layout) {
+        layout.removeAllViews();
+    }
+
+
+
+
+
+
+
+
+
 }

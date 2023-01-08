@@ -137,7 +137,7 @@ public class CreateRecipeFragment extends Fragment {
                 Recipe recipe = new Recipe(title, mFilename, getIngredients()); // create a new recipe object
                 // create a new RecipeController instance
                 mController = new RecipeController(recipe);
-                mRecipeRef.push().setValue(mController.getRecipe()).addOnSuccessListener(new OnSuccessListener<Void>() { // push the recipe to the database
+                mRecipeRef.child(mController.getId()).setValue(mController.getRecipe()).addOnSuccessListener(new OnSuccessListener<Void>() { // push the recipe to the database
                     @Override
                     public void onSuccess(Void unused) {
 
@@ -175,26 +175,26 @@ public class CreateRecipeFragment extends Fragment {
         horizontalLayout.setPadding(0, 0, 0, 10);
 
         float factor = getResources().getDisplayMetrics().density; // get the density factor
-        int pxWidth = (int)(198 * factor); // convert the width to pixels
-        int pxHeight = (int)(48 * factor); // convert the height to pixels
+        int pxWidthIngredient = (int)(198 * factor); // convert the width to pixels
+        int pxHeightIngredient = (int)(48 * factor); // convert the height to pixels
 
         EditText etIngredient = new EditText(getContext()); // create a new edit text
         etIngredient.setId(View.generateViewId());
         etIngredient.setHint(R.string.ingredient);
-        etIngredient.setLayoutParams(new LinearLayout.LayoutParams(pxWidth, pxHeight));
+        etIngredient.setLayoutParams(new LinearLayout.LayoutParams(pxWidthIngredient, pxHeightIngredient));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             etIngredient.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
         }
         etIngredient.setInputType(InputType.TYPE_CLASS_TEXT);
         horizontalLayout.addView(etIngredient); // add the edit text to the horizontal layout
 
-        int pxWidth2 = (int)(150 * factor);
-        int pxHeight2 = (int)(48 * factor);
+        int pxWidthQuantity = (int)(100 * factor);
+        int pxHeightQuantity = (int)(48 * factor);
 
         EditText etQuantity = new EditText(getContext()); // create a new edit text
         etQuantity.setId(View.generateViewId());
         etQuantity.setHint(R.string.quantity);
-        etQuantity.setLayoutParams(new LinearLayout.LayoutParams(pxWidth2, pxHeight2));
+        etQuantity.setLayoutParams(new LinearLayout.LayoutParams(pxWidthQuantity, pxHeightQuantity));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             etIngredient.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
         }
@@ -204,6 +204,26 @@ public class CreateRecipeFragment extends Fragment {
         mIngredientLayout.addView(horizontalLayout); // add the horizontal layout to the vertical layout
         mIngredientList.add(etIngredient);
         mQuantityList.add(etQuantity); // add the edit text to the list
+
+        int pxWidthButton = (int)(48 * factor);
+        int pxHeightButton = (int)(48 * factor);
+
+
+        ImageButton btnDelete = new ImageButton(getContext());
+        btnDelete.setId(View.generateViewId());
+        btnDelete.setLayoutParams(new LinearLayout.LayoutParams(pxWidthButton, pxHeightButton));
+        btnDelete.setImageResource(R.drawable.ic_button_delete);
+        btnDelete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mIngredientLayout.removeView(horizontalLayout);
+                mIngredientList.remove(etIngredient);
+                mQuantityList.remove(etQuantity);
+            }
+        });
+
+        horizontalLayout.addView(btnDelete);
+
     }
 
     private IngredientRow getIngredients() {
