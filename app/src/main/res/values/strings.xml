@@ -27,4 +27,9 @@
     <string name="submit">submit</string>
     <string name="password">password</string>
     <string name="recipe_name">Recipe Name</string>
+    <string name="camera">Camera</string>
+    <string name="add_ingredients">Add Ingrediants</string>
+    <string name="ingredients">Ingredients</string>
+    <string name="ingredient">Ingredient</string>
+    <string name="quantity">quantity</string>
 </resources>

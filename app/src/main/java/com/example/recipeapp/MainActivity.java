@@ -27,7 +27,6 @@ public class MainActivity extends AppCompatActivity {
         });
         Button registerButton = findViewById(R.id.btn_register);
         registerButton.setOnClickListener(v -> {
-            mAuth.signOut();
             Intent intent = new Intent(MainActivity.this, RegisterActivity.class);
             startActivity(intent);
         });
@@ -38,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser != null) {
+        if (currentUser != null) { // user is already logged in so go to the recipe activity
             Intent intent = new Intent(this, RecipeActivity.class);
             startActivity(intent);
         }

@@ -21,6 +21,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 
 public class RecipeFragment extends Fragment {
     RecyclerView mRecyclerView;
@@ -33,7 +34,6 @@ public class RecipeFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
     }
 
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -41,7 +41,7 @@ public class RecipeFragment extends Fragment {
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser(); // get the current user
 
-        assert user != null; // if the user is null, throw an exception
+        assert user != null;
         DatabaseReference recipeRef = FirebaseDatabase.getInstance("https://recipeapp-7d055-default-rtdb.europe-west1.firebasedatabase.app/")
                 .getReference().child("Recipe").child(user.getUid()); // get reference to the database for the user
         recipeRef.keepSynced(true); // keep the data synced
@@ -49,9 +49,11 @@ public class RecipeFragment extends Fragment {
         mRecyclerView = view.findViewById(R.id.rv_recipes);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(getContext())); // set the layout manager for the recycler view
 
+        Query query = recipeRef.orderByKey();
+
         FirebaseRecyclerOptions<Recipe> options =
                 new FirebaseRecyclerOptions.Builder<Recipe>()
-                        .setQuery(recipeRef, Recipe.class)
+                        .setQuery(query, Recipe.class)
                         .build(); // get all the recipes from the database
 
         mRecipeAdapter = new RecipeAdapter(options); // create a new adapter
@@ -89,11 +91,13 @@ public class RecipeFragment extends Fragment {
     @Override public void onStart() { // start the adapter
         super.onStart();
         mRecipeAdapter.startListening(); // start listening for changes in the database
+        mRecipeAdapter.notifyDataSetChanged();
     }
 
     @Override public void onStop() { // stop the adapter
         super.onStop();
         mRecipeAdapter.stopListening(); // stop listening for changes in the database
     }
+
 
 }
